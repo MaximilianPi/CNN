@@ -1,0 +1,174 @@
+---
+title: "CNN"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### Help Functions
+```{r}
+rotate = function(x) t(apply(x, 2, rev))
+imgPlot = function(img, title = ""){
+  col=grey.colors(255)
+  image(rotate(img), col = col, xlab = "", ylab = "", axes=FALSE, main = paste0("Label: ", as.character(title)))
+}
+
+```
+
+
+
+
+### Convolutional Neural Networks with Keras/Tensorflow
+TensorFlow is a low level lin algebra library optimized for neural networks / machine learning. We will use the higher level API Keras. Keras uses Google's Tensorflow, Microsoft's CTNK or Theano as backend (TF as default).
+
+
+[Tensorflow](https://www.tensorflow.org/)
+[Keras-R](https://keras.rstudio.com/)
+[Collection of Keras/Tensorflow examples in R](https://tensorflow.rstudio.com/)
+
+[Keras-Py](https://keras.io/)
+```{r}
+library(keras)
+```
+
+#### Prepare Data
+We will use the handwritten digits data set MNIST:
+```{r}
+data = dataset_mnist()
+train = data$train
+test = data$test
+
+par(mfrow = c(3,3))
+.n = sapply(1:9, function(x) imgPlot(train$x[x,,], train$y[x]))
+```
+
+```{r}
+train_x = array(train$x/255, c(dim(train$x), 1))
+test_x = array(test$x/255, c(dim(test$x), 1))
+
+train_y = to_categorical(train$y, 10)
+test_y = to_categorical(test$y, 10)
+
+
+print(dim(train_x))
+print(dim(test_y))
+
+```
+
+
+
+#### Build CNN
+```{r}
+model = keras_model_sequential()
+
+```
+
+In place modifications!
+```{r}
+model %>% 
+  layer_conv_2d(input_shape = c(NULL, 28, 28,1),filters = 16, kernel_size = c(2,2), activation = "relu", use_bias = F) %>% 
+  layer_max_pooling_2d() %>% 
+  layer_conv_2d(filters = 16, kernel_size = c(3,3), activation = "relu", use_bias = F) %>% 
+  layer_max_pooling_2d() %>% 
+  layer_flatten() %>% 
+  layer_dropout(0.3) %>% 
+  layer_dense(100, activation = "relu") %>% 
+  layer_dense(10, activation = "softmax")
+summary(model)
+```
+Dropout is a regularization technique. With the probability of p, each weight will be set to zero during a training step (see [Srivastava et al., 2014](http://www.jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf?utm_content=buffer79b43&utm_medium=social&utm_source=twitter.com&utm_campaign=buffer)). Infinite number of subnetworks will be trained. For predicting, p will be set to 1. It's a type of model averaging.
+
+
+Initiliaze the model:
+
+Adam belongs to the class of stochastic gradient descent optimizers with adaptive learning rates (see [Kingma and Ba](http://arxiv.org/abs/1412.6980))
+```{r}
+model %>% 
+  compile(
+    optimizer = keras::optimizer_adam(),
+    loss = keras::loss_categorical_crossentropy,
+    metrics = "accuracy"
+  )
+
+```
+
+
+Train model:
+Epochs = How often do we fit the model on the data
+batch_size = How many samples are used in one training step. 
+
+Training in modern ANN is achieved by batch training (mini batch stochastic gradient descent). A batch of data points and not a single data point or the whole data are used for updating weights.  
+```{r}
+epochs = 10L
+batch_size = 32L
+
+model %>% fit(
+  x = train_x, 
+  y = train_y,
+  epochs = epochs,
+  batch_size = batch_size,
+  shuffle = T,
+  validation_split = 0.2
+)
+```
+
+
+Evaluation on test:
+```{r}
+model %>% 
+  evaluate(test_x, test_y)
+
+```
+Ofc, CV would be better!
+
+Task: create a second model without a fully connect layer!
+
+```{r}
+model2 = keras_model_sequential()
+model2 %>% 
+  layer_conv_2d(input_shape = c(NULL, 28, 28,1),filters = 16, kernel_size = c(2,2), activation = "relu", use_bias = F) %>% 
+  layer_conv_2d(filters = 16, kernel_size = c(3,3), activation = "relu", use_bias = F) %>% 
+  layer_max_pooling_2d() %>% 
+  layer_flatten() %>% 
+  layer_dropout(0.3) %>% 
+  layer_dense(10, activation = "softmax")
+model2 %>% 
+  compile(
+    optimizer = keras::optimizer_adam(),
+    loss = keras::loss_categorical_crossentropy,
+    metrics = "accuracy"
+  )
+epochs = 10L
+batch_size = 32L
+
+model2 %>% fit(
+  x = train_x, 
+  y = train_y,
+  epochs = epochs,
+  batch_size = batch_size,
+  shuffle = T,
+  validation_split = 0.2
+)
+
+
+```
+
+```{r}
+model2 %>% 
+  evaluate(test_x, test_y)
+```
+
+
+#### Visualize Feature Maps
+```{r}
+K = backend()
+out = K$'function'(list(model2$layers[[1]]$input, K$learning_phase()),
+                   list(model2$layers[[1]]$output))
+imgPlot(out(list(train_x[1,,,,drop = FALSE], 0))[[1]][1,,,1],
+        which.max(train_y[1,]))
+
+
+
+```
+
