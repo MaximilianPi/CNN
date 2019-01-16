@@ -59,7 +59,7 @@ In place modifications!
 ```{r}
 
 ```
-Dropout is a regularization technique. With the probability of p, each weight will be set to zero during a training step (see [Srivastava et al., 2014](http://www.jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf?utm_content=buffer79b43&utm_medium=social&utm_source=twitter.com&utm_campaign=buffer)). Infinite number of subnetworks will be trained. For predicting, p will be set to 1. It's a type of model averaging.
+Dropout is a regularization technique. With the probability of p, each node + node's weights will be set to zero during a training step (see [Srivastava et al., 2014](http://www.jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf?utm_content=buffer79b43&utm_medium=social&utm_source=twitter.com&utm_campaign=buffer)). Infinite number of subnetworks will be trained. For predicting, p will be set to 1. It's a type of model averaging.
 
 
 Adam belongs to the class of stochastic gradient descent optimizers with adaptive learning rates (see [Kingma and Ba](http://arxiv.org/abs/1412.6980))
